@@ -1,0 +1,18 @@
+# Node modules
+node_modules/
+
+# dotenv file
+.env
+
+# Batches - raw responses
+batches/
+
+# Final output
+output.json
+
+# Logs (if you add any logging)
+*.log
+
+# Mac OS system files (if on macOS)
+.DS_Store
+
