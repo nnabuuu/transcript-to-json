@@ -7,6 +7,7 @@
     "start": "tsx index.ts",
     "transcript": "tsx transcript_whisper.ts",
     "organize": "tsx organize_tasks.ts",
+    "organize_chunk": "tsx organize_tasks_chunked.ts",
     "report": "tsx parse_report.ts"
   },
   "dependencies": {
