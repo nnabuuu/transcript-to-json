@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 async function run() {
-    const filePath = './demo/audio.wav'; // 你的 audio 文件名
+    const filePath = './demo/audio.aac'; // 你的 audio 文件名
     const fileStream = fs.createReadStream(filePath);
 
     console.log('🚀 Uploading audio to Whisper API...');
