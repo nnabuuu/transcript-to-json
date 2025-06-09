@@ -21,7 +21,7 @@ async function run() {
         fs.mkdirSync('./batches', { recursive: true });
         console.log('📂 Created batches/ directory');
     }
-    
+
     console.log('🔄 Loading flat sentences...');
 
     const flatSentences = JSON.parse(fs.readFileSync('./output.json', 'utf-8'));

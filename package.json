@@ -4,7 +4,8 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "start": "tsx index.ts"
+    "start": "tsx index.ts",
+    "organize": "tsx organize_tasks.ts"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
