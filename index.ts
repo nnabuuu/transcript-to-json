@@ -29,7 +29,7 @@ const promptTemplate = `
     - text （修正后的文字）
     - speaker_probabilities （包含 teacher 和 student）
 
-⚠️ 只输出 JSON，不要输出解释说明。
+⚠️ 只输出 JSON，不要添加解释或注释。
 
 示例格式：
 
@@ -80,8 +80,17 @@ async function processBatch(i: number, batchSegments: string) {
             const content = response.choices[0].message.content?.trim();
             if (!content) throw new Error('Empty response content');
 
-            // 保存raw response
-            fs.writeFileSync(`./batches/batch_${i + 1}.json`, content, 'utf-8');
+            // 保存 raw response
+            fs.writeFileSync(`./batches/batch_${i + 1}.json.raw.txt`, content, 'utf-8');
+
+            // 清洗 content → 提取出干净 JSON
+            const cleanedJson = extractJson(content);
+
+            // 先测试 parse
+            JSON.parse(cleanedJson);
+
+            // 保存干净版
+            fs.writeFileSync(`./batches/batch_${i + 1}.json`, cleanedJson, 'utf-8');
 
             console.log(`✅ Batch ${i + 1} completed and saved.`);
             return;
@@ -98,8 +107,39 @@ async function processBatch(i: number, batchSegments: string) {
     }
 }
 
+function extractJson(content: string): string {
+    // 优先提取 ```json ... ``` 块
+    const match = content.match(/```json\s*([\s\S]*?)```/);
+
+    if (match && match[1]) {
+        return match[1].trim();
+    }
+
+    // 如果没有 ```json ，尝试处理 ``` 包裹
+    const genericMatch = content.match(/```[\s\S]*?([\s\S]*?)```/);
+    if (genericMatch && genericMatch[1]) {
+        return genericMatch[1].trim();
+    }
+
+    // fallback → 去除开头的 ```json，结尾的 ```
+    return content
+        .replace(/^```json\s*/, '')
+        .replace(/^```\s*/, '')
+        .replace(/```$/, '')
+        .trim();
+}
+
 async function run() {
+
+    // Ensure batches directory exists
+    if (!fs.existsSync('./batches')) {
+        fs.mkdirSync('./batches', { recursive: true });
+        console.log('📂 Created batches/ directory');
+    }
+
     console.log(`Total batches: ${batches}`);
+
+    let allResults: any[] = [];
 
     for (let i = 0; i < batches; i++) {
         const batchPath = `./batches/batch_${i + 1}.json`;
@@ -107,6 +147,13 @@ async function run() {
         // 断点续跑机制
         if (fs.existsSync(batchPath)) {
             console.log(`⏭ Batch ${i + 1} already exists, skipping...`);
+            const content = fs.readFileSync(batchPath, 'utf-8');
+            try {
+                const batchResult = JSON.parse(content);
+                allResults.push(...batchResult);
+            } catch (err) {
+                console.error(`❌ Failed to parse existing batch ${i + 1}, skipping in merge...`, err);
+            }
             continue;
         }
 
@@ -115,25 +162,17 @@ async function run() {
 
         // 可选延时，避免 API 速率限制
         await sleep(1000);
-    }
 
-    // 拼接所有 batch
-    console.log('🔄 Merging all batches...');
-    let allResults: any[] = [];
-
-    for (let i = 0; i < batches; i++) {
-        const batchPath = `./batches/batch_${i + 1}.json`;
-
-        if (fs.existsSync(batchPath)) {
+        // merge 过程中读取 batch，拼接到 allResults
+        const batchContentPath = `./batches/batch_${i + 1}.json`;
+        if (fs.existsSync(batchContentPath)) {
             try {
-                const content = fs.readFileSync(batchPath, 'utf-8');
-                const batchResult = JSON.parse(content);
+                const batchContent = fs.readFileSync(batchContentPath, 'utf-8');
+                const batchResult = JSON.parse(batchContent);
                 allResults.push(...batchResult);
             } catch (err) {
-                console.error(`❌ Failed to parse batch ${i + 1}, skipping...`, err);
+                console.error(`❌ Failed to parse new batch ${i + 1}, skipping in merge...`, err);
             }
-        } else {
-            console.warn(`⚠️ Batch ${i + 1} not found, skipping...`);
         }
     }
 
